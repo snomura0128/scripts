@@ -1,8 +1,10 @@
 import time
 import datetime
-# import re
+import re
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
+
+
 # from bs4 import BeautifulSoup
 
 
@@ -12,6 +14,7 @@ class Horse:
         self.name = name
         self.popular = popular
         self.odds = odds
+
     number = None
     name = None
     odds = None
@@ -23,6 +26,7 @@ class Race:
         self.race_num = race_num
         self.now = now
         self.start_time = start_time
+
     held = None
     race_num = None
     now = None
@@ -50,45 +54,23 @@ def get_horse_info(driver):
     return horse_list
 
 
-def has_next_race(driver):
-    global current_race_num
-    race_buttons = driver.find_elements_by_xpath(
-        "//*[@id='contentsBody']/ul[2]/li")
-    for i, race_button in enumerate(race_buttons):
-        if(race_button.get_attribute("class") == 'current'):
-            current_race_num = i
-            break
-    return len(race_buttons) != current_race_num + 1
-
-
-def click_next_race(driver):
-    global current_race_num
-    race_buttons = driver.find_elements_by_xpath(
-        "//*[@id='contentsBody']/ul[2]/li")
-    for i, race_button in enumerate(race_buttons):
-        if(race_button.get_attribute("class") == 'current'):
-            current_race_num = i
-            break
-    race_buttons[current_race_num + 1].click()
-
-
 def has_next_course(driver):
-    global current_race_num
+    current_race_num = 0
     course_buttons = driver.find_elements_by_xpath(
         "//*[@id='contentsBody']/ul[1]/li")
     for i, course_button in enumerate(course_buttons):
-        if(course_button.get_attribute("class") == 'current'):
+        if course_button.get_attribute("class") == 'current':
             current_race_num = i
             break
     return len(course_buttons) != current_race_num + 1
 
 
 def click_next_course(driver):
-    global current_course_num
+    current_course_num = 0
     course_buttons = driver.find_elements_by_xpath(
         "//*[@id='contentsBody']/ul[1]/li")
     for i, course_button in enumerate(course_buttons):
-        if(course_button.get_attribute("class") == 'current'):
+        if course_button.get_attribute("class") == 'current':
             current_course_num = i
             break
     course_buttons[current_course_num + 1].click()
@@ -97,20 +79,40 @@ def click_next_course(driver):
 
 
 def get_all_race_info(driver):
+    def has_next_race():
+        current_race_num = 0
+        race_buttons = driver.find_elements_by_xpath(
+            "//*[@id='contentsBody']/ul[2]/li")
+        for i, race_button in enumerate(race_buttons):
+            if race_button.get_attribute("class") == 'current':
+                current_race_num: int = i
+                break
+        return len(race_buttons) != current_race_num + 1
+
+    def click_next_race():
+        current_race_num = 0
+        race_buttons = driver.find_elements_by_xpath(
+            "//*[@id='contentsBody']/ul[2]/li")
+        for i, race_button in enumerate(race_buttons):
+            if race_button.get_attribute("class") == 'current':
+                current_race_num = i
+                break
+        race_buttons[current_race_num + 1].click()
+
     while True:
         race = initialize_race(driver)
         race.horses = get_horse_info(driver)
         print(vars(race))
         for horse in race.horses:
             print(vars(horse))
-        if(has_next_race(driver)):
-            click_next_race(driver)
+        if has_next_race():
+            click_next_race()
         else:
             break
 
 
 def initialize_race(driver):
-    global current_race_num, current_course_num
+    current_race_num, current_course_num = 0, 0
     course_buttons = driver.find_elements_by_xpath(
         "//*[@id='contentsBody']/ul[1]/li")
     for index, course_button in enumerate(course_buttons):
@@ -132,16 +134,16 @@ def initialize_race(driver):
     return Race(held, race_num, now, start_time)
 
 
-if __name__ == '__main__':
+def main():
     DRIVER_PATH = './chromedriver'
-    url = "https://www.jra.go.jp/"
+    URL = "https://www.jra.go.jp/"
 
     options = Options()
     options.add_argument('--headless')
     driver = webdriver.Chrome(executable_path=DRIVER_PATH, options=options)
     driver.implicitly_wait(10)
     driver.set_page_load_timeout(10)
-    driver.get(url)
+    driver.get(URL)
 
     today = datetime.datetime.now().strftime("%-m月%-d日")
 
@@ -151,28 +153,30 @@ if __name__ == '__main__':
     # 開催日程を取得
     elements = driver.find_elements_by_xpath("//*[@id='main']/div")
     elements.pop(0)
-    # event_open_dates = list(map(lambda element: re.findall(
-    #     r'\d+月\d+日', element.find_element_by_xpath("*[@class='sub_header']").text)[0], elements))
+    event_open_dates = list(map(lambda element: re.findall(
+        r'\d+月\d+日', element.find_element_by_xpath("*[@class='sub_header']").text)[0], elements))
 
-    event_open_dates = ['11月14日']
+    # event_open_dates = ['11月14日']
 
     for i, event_open_date in enumerate(event_open_dates):
         if event_open_date == today:
             # 会場、開催日をクリック
-            cofirst_course = elements[i].find_element_by_xpath(
+            first_course = elements[i].find_element_by_xpath(
                 "div[@class='content']/ul/li[@class='waku']")
-            cofirst_course.click()
+            first_course.click()
             time.sleep(1)
             # レースをクリック
             race_element = driver.find_element_by_xpath(
                 "//*[@id='race_list']/tbody").find_element_by_class_name('race_num')
             race_element.click()
-            race = initialize_race(driver)
             get_all_race_info(driver)
 
             while has_next_course(driver):
                 click_next_course(driver)
-                race = initialize_race(driver)
                 get_all_race_info(driver)
     driver.close()
     driver.quit()
+
+
+if __name__ == '__main__':
+    main()
