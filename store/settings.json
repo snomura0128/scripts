@@ -1,0 +1,8 @@
+{
+  "user":"python",
+  "password":"python",
+  "host":"raspi",
+  "db":"keibadb",
+  "port":"3306",
+  "charset": "utf8"
+}
