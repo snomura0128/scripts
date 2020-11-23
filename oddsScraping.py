@@ -3,7 +3,10 @@ import datetime
 import re
 import dataclasses
 from selenium import webdriver
-from store.utils import Repository, TimelyOdds
+
+from line.line import Line
+from store.repository import Repository, TimelyOdds
+from analysis.graph import Graph
 from selenium.webdriver.chrome.options import Options
 
 
@@ -41,6 +44,7 @@ class OddsScraping:
         driver.find_element_by_xpath("//*[@id='quick_menu']/div/ul/li[2]").click()
         self._repository = Repository()
         self._driver = driver
+        self.now = datetime.datetime.now().strftime("%H:%M")
 
     def __del__(self):
         self._driver.close()
@@ -65,8 +69,7 @@ class OddsScraping:
         temp_start_time = self._driver.find_element_by_xpath(
             "//*[@id='syutsuba']/table/caption").find_element_by_css_selector('.cell.time').text
         start_time = temp_start_time.replace("発走時刻：", "").replace("時", ":").replace("分", "")
-        now = datetime.datetime.now().strftime("%H:%M")
-        return Race(held, race_num, now, start_time)
+        return Race(held, race_num, self.now, start_time)
 
     def get_all_race_info(self):
         def has_next_race():
@@ -89,15 +92,28 @@ class OddsScraping:
                     break
             race_buttons[current_race_num + 1].click()
 
+        def is_not_started(now, start_time):
+            date_now = datetime.datetime.strptime(now, '%H:%M')
+            date_start_time = datetime.datetime.strptime(start_time, '%H:%M') + datetime.timedelta(minutes=2)
+            return date_now <= date_start_time
+
+        def can_create_graph_image(now, start_time):
+            date_now = datetime.datetime.strptime(now, '%H:%M')
+            date_start_time = datetime.datetime.strptime(start_time, '%H:%M')
+            return 240 <= (date_start_time - date_now).total_seconds() <= 300
+
         while True:
             race = self.initialize_race()
-            horse_list = self.get_horse_info()
-            for horse in horse_list:
-                print(vars(horse))
-                timelyOdds = TimelyOdds(held=race.held, race_number=race.race_num, horse_number=horse.number,
-                                        acquisition_time=race.now, start_time=race.start_time, odds=horse.odds,
-                                        popular=horse.popular, horse_name=horse.name)
-                self._repository.insert(timelyOdds)
+            if is_not_started(self.now, race.start_time):
+                horse_list = self.get_horse_info()
+                for horse in horse_list:
+                    timelyOdds = TimelyOdds(held=race.held, race_number=race.race_num, horse_number=horse.number,
+                                            acquisition_time=race.now, start_time=race.start_time, odds=horse.odds,
+                                            popular=horse.popular, horse_name=horse.name)
+                    self._repository.insert(timelyOdds)
+                if can_create_graph_image(self.now, race.start_time):
+                    graph_img_name = Graph.create_graph_image(held=race.held, race_number=race.race_num)
+                    Line.notify(graph_img_name, './images/' + graph_img_name)
             if has_next_race():
                 click_next_race()
             else:
@@ -114,11 +130,11 @@ class OddsScraping:
                 "div[@class='odds']/div[@class='odds_line']/strong").text
             popular = name_line.find_elements_by_xpath(
                 "div[@class='odds']/div[@class='odds_line']/span")
-            # 出走取り消しの場合は取得できない
+            # 出走取り消しの場合は取得できないためスキップ
             if len(popular) > 0:
                 popular = popular[0].text.replace("番人気)", "").replace("(", "")
             else:
-                popular = None
+                continue
             horse_list.append(Horse(i + 1, name, int(popular), float(odds)))
         return horse_list
 
@@ -131,8 +147,7 @@ class OddsScraping:
             r'\d+月\d+日', element.find_element_by_xpath("*[@class='sub_header']").text)[0], elements))
         for i, event_open_date in enumerate(event_open_dates):
             if event_open_date == today_mmdd:
-                # 会場、開催日をクリック
-                held_count = elements[i].find_elements_by_xpath("div[@class='content']/ul/li/a")
+                held_count = elements[i].find_elements_by_xpath("div[@class='content']/ul[1]/li[@class='waku']/a")
                 return len(held_count)
 
     def get_one_held_race(self, held_number):
@@ -145,7 +160,7 @@ class OddsScraping:
             if event_open_date == today_mmdd:
                 # 会場、開催日をクリック
                 first_course = elements[i].find_element_by_xpath(
-                    f"div[@class='content']/ul/li[{held_number}]/a")
+                    f"div[@class='content']/ul[1]/li[@class='waku'][{held_number}]/a")
                 first_course.click()
                 time.sleep(1)
                 # レースをクリック

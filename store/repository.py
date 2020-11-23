@@ -36,13 +36,11 @@ class Repository:
         db = json_data["db"]
         port = json_data["port"]
         charset = json_data["charset"]
-        engine = create_engine(f"mysql://{user}:{password}@{host}:{port}/{db}?charset={charset}")
-        SessionClass = sessionmaker(engine)
+        self.engine = create_engine(f"mysql://{user}:{password}@{host}:{port}/{db}?charset={charset}")
+        SessionClass = sessionmaker(self.engine)
         self.__session = SessionClass()
 
     def insert(self, record):
-        # self.session.add(TimelyOdds(held="3回福島5日", race_number=1, horse_number=1, acquisition_time="00:10:00",
-        #                        start_time="10:30:00", odds=1.2, popular=1, horse_name="クロムシャ"))
         self.__session.add(record)
 
     def commit(self):
