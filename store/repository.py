@@ -1,5 +1,5 @@
 import json
-import os
+import subprocess
 import sqlalchemy.ext.declarative
 from sqlalchemy import create_engine
 from sqlalchemy.schema import Column
@@ -28,7 +28,7 @@ class Repository:
 
     def __init__(self):
         # 設定ファイルから接続情報を取得する。
-        json_file = open(os.path.dirname(__file__) + '/settings.json', 'r')
+        json_file = open(subprocess('pwd') + '/settings.json', 'r')
         json_data = json.load(json_file)
         user = json_data["user"]
         password = json_data["password"]

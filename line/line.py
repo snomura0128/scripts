@@ -1,6 +1,6 @@
 import requests
 import json
-import os
+import subprocess
 
 
 class Line:
@@ -8,7 +8,7 @@ class Line:
     @classmethod
     def notify(cls, message, *args):
         # 設定ファイルからtokenを取得する。
-        json_file = open(os.path.dirname(__file__) + '/settings.json', 'r')
+        json_file = open(subprocess('pwd') + '/settings.json', 'r')
         json_data = json.load(json_file)
         # 設定
         line_notify_api = 'https://notify-api.line.me/api/notify'
