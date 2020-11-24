@@ -41,6 +41,8 @@ class Graph:
         plt.grid(linestyle='--')
         plt.xlabel("日時")
         plt.ylabel("オッズ")
-        graph_img_name = held + "_R" + str(race_number) + '.png'
-        plt.savefig('./images/' + graph_img_name)
+        title = held + "_R" + str(race_number)
+        plt.title(title)
+        graph_img_name = title + '.png'
+        plt.savefig('./images/' + graph_img_name, dpi=200)
         return graph_img_name
