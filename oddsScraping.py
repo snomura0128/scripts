@@ -3,11 +3,11 @@ import datetime
 import re
 import dataclasses
 from selenium import webdriver
-
-from line.line import Line
-from store.repository import Repository, TimelyOdds
-from analysis.graph import Graph
 from selenium.webdriver.chrome.options import Options
+
+import analysis.graph as graph
+import sns.line as line
+from store.repository import Repository, TimelyOdds
 
 
 today_yyyymmdd = datetime.datetime.now().strftime('%Y%m%d')
@@ -112,8 +112,8 @@ class OddsScraping:
                                             popular=horse.popular, horse_name=horse.name)
                     self._repository.insert(timelyOdds)
                 if can_create_graph_image(self.now, race.start_time):
-                    graph_img_name = Graph.create_graph_image(held=race.held, race_number=race.race_num)
-                    Line.notify(graph_img_name, './images/' + graph_img_name)
+                    graph_img_name = graph.create_graph_image(held=race.held, race_number=race.race_num)
+                    line.notify(graph_img_name, './images/' + graph_img_name)
             if has_next_race():
                 click_next_race()
             else:
