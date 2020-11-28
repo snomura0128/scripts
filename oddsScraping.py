@@ -100,7 +100,7 @@ class OddsScraping:
         def can_create_graph_image(now, start_time):
             date_now = datetime.datetime.strptime(now, '%H:%M')
             date_start_time = datetime.datetime.strptime(start_time, '%H:%M')
-            return 240 <= (date_start_time - date_now).total_seconds() <= 300
+            return 300 <= (date_start_time - date_now).total_seconds() <= 360
 
         while True:
             race = self.initialize_race()
@@ -113,6 +113,8 @@ class OddsScraping:
                     self._repository.insert(timelyOdds)
                 if can_create_graph_image(self.now, race.start_time):
                     graph_img_name = graph.create_graph_image(held=race.held, race_number=race.race_num)
+                    line.notify(graph_img_name, './images/' + graph_img_name)
+                    graph_img_name = graph.create_graph_image(held=race.held, race_number=race.race_num, only_last_one_hour=True)
                     line.notify(graph_img_name, './images/' + graph_img_name)
             if has_next_race():
                 click_next_race()
