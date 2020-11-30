@@ -84,7 +84,7 @@ def create_graph_image(held, race_number, only_last_one_hour=False):
         arranged_df = pd.concat([arranged_df, series], axis=1)
     arranged_df = arranged_df.drop(0, axis=1)
 
-    fig, ax = plt.subplots(2, 1, figsize=(9, 12))
+    fig, ax = plt.subplots(2, 1, figsize=(6, 8))
     for i, less_popular in enumerate([False, True]):
         new_df, hat_color_list, linestyle_list = __graph_decorations(arranged_df, less_popular=less_popular)
 
@@ -99,7 +99,7 @@ def create_graph_image(held, race_number, only_last_one_hour=False):
                 base_time += datetime.timedelta(minutes=30)
                 if base_time > df.iloc[0]['start_time']:
                     break
-        ax[i].legend(fontsize=9, loc='upper left', facecolor='silver')
+        ax[i].legend(fontsize=8, loc='upper left', facecolor='silver')
         ax[i].set_xticks(x_labels)
         ax[i].tick_params(axis='x', labelrotation=90)
         ax[i].grid(True)
@@ -109,8 +109,8 @@ def create_graph_image(held, race_number, only_last_one_hour=False):
     title = held + "_R" + str(race_number) + postfix
     fig.suptitle(title)
     graph_img_name = title + '.png'
-    # fig.savefig('../images/' + graph_img_name, dpi=300)
-    fig.show()
+    fig.savefig('../images/' + graph_img_name, dpi=300)
+    # fig.show()
     return graph_img_name
 
 
