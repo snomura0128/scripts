@@ -116,9 +116,9 @@ def create_graph_image(held, race_number, only_last_one_hour=False):
 
 if __name__ == '__main__':
     held = '5回東京9日'
-    race_number = 5
+    race_number = 10
+    # create_graph_image(held, race_number, only_last_one_hour=False)
     create_graph_image(held, race_number, only_last_one_hour=False)
-    # create_graph_image(held, race_number, only_last_one_hour=True)
 
     # for i in range(12):
     #     race_num = i + 1

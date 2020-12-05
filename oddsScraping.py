@@ -50,28 +50,32 @@ class OddsScraping:
         self._driver.close()
         self._driver.quit()
 
-    def initialize_race(self):
-        current_race_num, current_course_num = 0, 0
-        course_buttons = self._driver.find_elements_by_xpath(
-            "//*[@id='contentsBody']/ul[1]/li")
-        for index, course_button in enumerate(course_buttons):
-            if course_button.get_attribute("class") == 'current':
-                current_course_num = index
-                break
-        held = course_buttons[current_course_num].text
-        race_buttons = self._driver.find_elements_by_xpath(
-            "//*[@id='contentsBody']/ul[2]/li")
-        for index, race_button in enumerate(race_buttons):
-            if race_button.get_attribute("class") == 'current':
-                current_race_num = index
-                break
-        race_num = current_race_num + 1
-        temp_start_time = self._driver.find_element_by_xpath(
-            "//*[@id='syutsuba']/table/caption").find_element_by_css_selector('.cell.time').text
-        start_time = temp_start_time.replace("発走時刻：", "").replace("時", ":").replace("分", "")
-        return Race(held, race_num, self.now, start_time)
-
     def get_all_race_info(self):
+
+        def initialize_race():
+            current_race_num, current_course_num = 0, 0
+            # course_buttons = self._driver.find_elements_by_xpath(
+            #     "//*[@id='contentsBody']/ul[1]/li")
+            course_buttons = self._driver.find_elements_by_xpath(
+                f"//*[@id='contentsBody']/div/div/div/ul/li[{self.held_day_count}]/\
+                div/div[@class='content']/div/div")
+            for index, course_button in enumerate(course_buttons):
+                if course_button.get_attribute("class") == 'current':
+                    current_course_num = index
+                    break
+            held = course_buttons[current_course_num].text
+            race_buttons = self._driver.find_elements_by_xpath(
+                "//*[@id='contentsBody']/ul/li")
+            for index, race_button in enumerate(race_buttons):
+                if race_button.get_attribute("class") == 'current':
+                    current_race_num = index
+                    break
+            race_num = current_race_num + 1
+            temp_start_time = self._driver.find_element_by_xpath(
+                "//*[@id='syutsuba']/table/caption").find_element_by_css_selector('.cell.time').text
+            start_time = temp_start_time.replace("発走時刻：", "").replace("時", ":").replace("分", "")
+            return Race(held, race_num, self.now, start_time)
+
         def has_next_race():
             current_race_num = 0
             race_buttons = self._driver.find_elements_by_xpath(
@@ -103,7 +107,7 @@ class OddsScraping:
             return 300 <= (date_start_time - date_now).total_seconds() <= 360
 
         while True:
-            race = self.initialize_race()
+            race = initialize_race()
             if is_not_started(self.now, race.start_time):
                 horse_list = self.get_horse_info()
                 for horse in horse_list:
@@ -129,9 +133,9 @@ class OddsScraping:
             name_line = horse_tr.find_element_by_xpath("td[@class='horse']/div[@class='name_line']")
             name = name_line.find_element_by_xpath("div[@class='name']").text
             odds = name_line.find_element_by_xpath(
-                "div[@class='odds']/div[@class='odds_line']/strong").text
+                "div[@class='odds']/div[@class='odds_line']/span[@class='num']").text
             popular = name_line.find_elements_by_xpath(
-                "div[@class='odds']/div[@class='odds_line']/span")
+                "div[@class='odds']/div[@class='odds_line']/span[@class='pop_rank']")
             # 出走取り消しの場合は取得できないためスキップ
             if len(popular) > 0:
                 popular = popular[0].text.replace("番人気)", "").replace("(", "")
@@ -149,7 +153,7 @@ class OddsScraping:
             r'\d+月\d+日', element.find_element_by_xpath("*[@class='sub_header']").text)[0], elements))
         for i, event_open_date in enumerate(event_open_dates):
             if event_open_date == today_mmdd:
-                held_count = elements[i].find_elements_by_xpath("div[@class='content']/ul[1]/li[@class='waku']/a")
+                held_count = elements[i].find_elements_by_xpath("div[@class='content']/div/div[@class='waku']/a")
                 return len(held_count)
 
     def get_one_held_race(self, held_number):
@@ -160,13 +164,14 @@ class OddsScraping:
             r'\d+月\d+日', element.find_element_by_xpath("*[@class='sub_header']").text)[0], elements))
         for i, event_open_date in enumerate(event_open_dates):
             if event_open_date == today_mmdd:
+                self.held_day_count = i + 1
                 # 会場、開催日をクリック
                 first_course = elements[i].find_element_by_xpath(
-                    f"div[@class='content']/ul[1]/li[@class='waku'][{held_number}]/a")
+                    f"div[@class='content']/div/div[@class='waku'][{held_number}]/a")
                 first_course.click()
                 time.sleep(1)
                 # レースをクリック
                 race_element = self._driver.find_element_by_xpath(
-                    "//*[@id='race_list']/tbody").find_element_by_class_name('race_num')
+                    "//*[@id='race_list']/tbody/tr[1]").find_element_by_class_name('syutsuba')
                 race_element.click()
                 self.get_all_race_info()
