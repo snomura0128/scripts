@@ -139,9 +139,9 @@ class OddsScraping:
             # 出走取り消しの場合は取得できないためスキップ
             if len(popular) > 0:
                 popular = popular[0].text.replace("番人気)", "").replace("(", "")
+                horse_list.append(Horse(i + 1, name, int(popular), float(odds)))
             else:
-                continue
-            horse_list.append(Horse(i + 1, name, int(popular), float(odds)))
+                horse_list.append(Horse(i + 1, name, None, None))
         return horse_list
 
     def count_held(self):
